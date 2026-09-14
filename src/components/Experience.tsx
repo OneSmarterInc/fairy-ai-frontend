@@ -8,11 +8,11 @@ import FairyOverlay from './FairyOverlay'
 
 const CHARACTER_ASSETS = [
   { name: 'Fairy', url: '/assets/fairy.png' },
-  { name: 'Dora', url: '/assets/dora.webp' },
-  { name: 'Dora 1', url: '/assets/dora1.webp' },
-  { name: 'Dora 2', url: '/assets/dora2.webp' },
-  { name: 'Dora 3', url: '/assets/dora3.webp' },
-  { name: 'Dora 4', url: '/assets/dora4.webp' },
+  { name: 'Dora', url: '/assets/dora.png' },
+  { name: 'Dora 1', url: '/assets/dora1.png' },
+  { name: 'Dora 2', url: '/assets/dora2.png' },
+  { name: 'Dora 3', url: '/assets/dora3.png' },
+  { name: 'Dora 4', url: '/assets/dora4.png' },
   { name: 'Jian', url: '/assets/jian.png' },
   { name: 'Nobi', url: '/assets/nobi.png' },
   { name: 'Nobi 1', url: '/assets/nobi1.png' },
