@@ -385,7 +385,6 @@ export default function Experience() {
 
           <form className="gc-composer" onSubmit={submit}>
 
-            {/* 
             <button
               type="button"
               className={`gc-mic ${speech.listening ? 'active' : ''}`}
@@ -396,7 +395,6 @@ export default function Experience() {
             >
               🎤
             </button>
-            */}
 
             <button
               type="button"
