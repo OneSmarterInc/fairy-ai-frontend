@@ -98,6 +98,7 @@ export default function Experience() {
   }, [conversationId])
 
   const latestAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
+  const latestUser = [...messages].reverse().find((message) => message.role === 'user')
 
   const send = async (value = text) => {
     const question = value.trim()
@@ -430,7 +431,6 @@ export default function Experience() {
               disabled={busy}
               aria-label="Message the fairy"
             />
-
             <button className="gc-send" type="submit" disabled={busy || !text.trim()}>SEND</button>
           </form>
 
