@@ -1,0 +1,21 @@
+{
+  "name": "Fairy AI",
+  "short_name": "Fairy AI",
+  "description": "Your magical companion in your room.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#15131c",
+  "icons": [
+    {
+      "src": "/assets/fairy.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/fairy.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

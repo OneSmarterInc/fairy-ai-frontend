@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export function useCamera() {
+export function useCamera(resolution: '720p' | '1080p' = '1080p') {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
@@ -21,8 +21,10 @@ export function useCamera() {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('Camera access is not supported in this browser. Use Chrome/Edge on localhost or HTTPS.')
       }
+      const width = resolution === '1080p' ? 1920 : 1280
+      const height = resolution === '1080p' ? 1080 : 720
       const media = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: mode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: { ideal: mode }, width: { ideal: width }, height: { ideal: height } },
         audio: false,
       })
       streamRef.current = media

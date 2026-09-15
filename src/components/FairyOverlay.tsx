@@ -2,12 +2,20 @@ import { PointerEvent as ReactPointerEvent, WheelEvent, useMemo, useRef, useStat
 import type { AIAction, Character } from '../types'
 
 type Point = { x: number, y: number }
-type Props = { character: Character, action: AIAction | null, cameraOffset?: Point, onResetCameraMotion?: () => void, assetUrl?: string, isVideoAsset?: boolean }
+type Props = { 
+  character: Character, 
+  action: AIAction | null, 
+  cameraOffset?: Point, 
+  onResetCameraMotion?: () => void, 
+  assetUrl?: string, 
+  isVideoAsset?: boolean,
+  animationSpeed?: number 
+}
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 
-export default function FairyOverlay({ character, action, cameraOffset = { x: 0, y: 0 }, onResetCameraMotion, assetUrl, isVideoAsset }: Props) {
+export default function FairyOverlay({ character, action, cameraOffset = { x: 0, y: 0 }, onResetCameraMotion, assetUrl, isVideoAsset, animationSpeed = 1 }: Props) {
   const [position, setPosition] = useState({ x: 50, y: 35 })
   const [scale, setScale] = useState(1)
   const pointers = useRef(new Map<number, Point>())
@@ -82,7 +90,7 @@ export default function FairyOverlay({ character, action, cameraOffset = { x: 0,
   }
 
   return (
-    <div className="fairy-stage" aria-label={`${character.name} camera overlay`}>
+    <div className="fairy-stage" style={{ '--fairy-speed': animationSpeed } as React.CSSProperties} aria-label={`${character.name} camera overlay`}>
       <div
         className="fairy-transform"
         style={{

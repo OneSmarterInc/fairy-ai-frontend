@@ -1,11 +1,21 @@
 import axios from 'axios'
-import type { AIAction, Character } from '../types'
+import type { AIAction, Character, Conversation } from '../types'
 
 const baseURL = import.meta.env.VITE_API_URL || '/api'
 const api = axios.create({ baseURL, timeout: 90000 })
 
 export async function getCharacters(): Promise<Character[]> {
   const { data } = await api.get('/characters/')
+  return data
+}
+
+export async function getConversation(id: number): Promise<Conversation> {
+  const { data } = await api.get(`/conversations/${id}/`)
+  return data
+}
+
+export async function getConversations(): Promise<Conversation[]> {
+  const { data } = await api.get('/conversations/')
   return data
 }
 

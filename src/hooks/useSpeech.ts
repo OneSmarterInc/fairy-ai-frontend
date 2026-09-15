@@ -15,7 +15,7 @@ export function useSpeech() {
     window.speechSynthesis.speak(u)
   }
 
-  const listen = (onText: (text: string) => void) => {
+  const listen = (onText: (text: string) => void, onError?: (error: string) => void) => {
     const Ctor: SpeechRecognitionCtor | undefined = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!Ctor) return
     const rec = new Ctor()
@@ -24,7 +24,16 @@ export function useSpeech() {
     rec.continuous = false
     rec.onstart = () => setListening(true)
     rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
+    rec.onerror = (event: any) => {
+      setListening(false)
+      if (onError && event.error) {
+        if (event.error === 'not-allowed') {
+          onError("Mic permission denied. Please allow microphone access to talk to Tansy!")
+        } else {
+          onError(`Mic error: ${event.error}`)
+        }
+      }
+    }
     rec.onresult = (event: any) => onText(event.results[0][0].transcript)
     rec.start()
   }

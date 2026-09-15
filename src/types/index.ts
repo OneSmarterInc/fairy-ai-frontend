@@ -17,8 +17,16 @@ export type AIAction = {
 }
 
 export type ChatMessage = {
-  id: string
+  id: string | number
   role: 'user'|'assistant'
   content: string
   pending?: boolean
+}
+
+export type Conversation = {
+  id: number
+  title: string
+  character: Character
+  messages: ChatMessage[]
+  updated_at: string
 }

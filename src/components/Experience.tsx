@@ -1,10 +1,13 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import type { AIAction, Character, ChatMessage } from '../types'
-import { askFairy, getCharacters, health } from '../services/api'
+import { askFairy, getCharacters, health, getConversation } from '../services/api'
 import { useCamera } from '../hooks/useCamera'
 import { useCameraMotion } from '../hooks/useCameraMotion'
 import { useSpeech } from '../hooks/useSpeech'
+import { useSettings } from '../hooks/useSettings'
 import FairyOverlay from './FairyOverlay'
+import ChatHistory from './ChatHistory'
+import SettingsModal from './SettingsModal'
 
 const CHARACTER_ASSETS = [
   { name: 'Fairy', url: '/assets/fairy.png' },
@@ -19,10 +22,23 @@ const CHARACTER_ASSETS = [
   { name: 'Siju', url: '/assets/siju.png' },
 ]
 
+const EMOJI_REACTIONS = [
+  { emoji: '❤️', text: '*Sends a heart* I love this!' },
+  { emoji: '✨', text: '*Throws sparkles* So magical!' },
+  { emoji: '😂', text: '*Laughs out loud* That is hilarious!' },
+  { emoji: '😮', text: '*Gasps* Oh my goodness!' },
+  { emoji: '👋', text: '*Waves* Hello there!' },
+  { emoji: '🎉', text: '*Throws confetti* Let us celebrate!' }
+]
+
 export default function Experience() {
+  const [settings, setSettings] = useSettings()
   const [character, setCharacter] = useState<Character | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<{ url: string, isVideo?: boolean } | null>(null)
   const [showCharacterSelector, setShowCharacterSelector] = useState(false)
+  const [showChatHistory, setShowChatHistory] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showEmojis, setShowEmojis] = useState(false)
   const [initializing, setInitializing] = useState(true)
   const [action, setAction] = useState<AIAction | null>(null)
   const [text, setText] = useState('')
@@ -31,11 +47,10 @@ export default function Experience() {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('Connecting…')
   const [error, setError] = useState('')
-  const [voiceReplies, setVoiceReplies] = useState(false)
   const [showReply, setShowReply] = useState(true)
   const [isTakingPhoto, setIsTakingPhoto] = useState(false)
   const rootRef = useRef<HTMLElement>(null)
-  const cam = useCamera()
+  const cam = useCamera(settings.resolution)
   const cameraMotion = useCameraMotion(cam.videoRef, cam.stream, cam.facingMode === 'user')
   const speech = useSpeech()
 
@@ -50,6 +65,18 @@ export default function Experience() {
       setCharacter(foundChar)
       setSelectedAsset({ url: foundChar.avatar || '/assets/fairy.png' })
       setStatus(healthData.gemini_configured ? 'Ready' : 'Add GEMINI_API_KEY in backend/.env')
+
+      const savedConvId = localStorage.getItem('fairy_conversation_id')
+      if (savedConvId) {
+        try {
+          const parsedId = parseInt(savedConvId, 10)
+          const conv = await getConversation(parsedId)
+          setConversationId(parsedId)
+          setMessages(conv.messages)
+        } catch (e) {
+          localStorage.removeItem('fairy_conversation_id')
+        }
+      }
     } catch (err: any) {
       setCharacter(null)
       setSelectedAsset(null)
@@ -61,6 +88,14 @@ export default function Experience() {
   }, [])
 
   useEffect(() => { void loadApp() }, [loadApp])
+
+  useEffect(() => {
+    if (conversationId) {
+      localStorage.setItem('fairy_conversation_id', conversationId.toString())
+    } else {
+      localStorage.removeItem('fairy_conversation_id')
+    }
+  }, [conversationId])
 
   const latestAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
 
@@ -84,7 +119,7 @@ export default function Experience() {
         { id: `assistant-${result.assistant_message_id}`, role: 'assistant', content: result.reply },
       ])
       setStatus('Ready')
-      if (voiceReplies) speech.speak(result.reply)
+      if (settings.voiceReplies) speech.speak(result.reply)
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Could not reach Gemini. Check the backend and API key.'
       if (err?.response?.data?.conversation_id) setConversationId(err.response.data.conversation_id)
@@ -103,6 +138,9 @@ export default function Experience() {
   const startVoice = () => speech.listen((heard) => {
     setText(heard)
     void send(heard)
+  }, (err) => {
+    setError(err)
+    setShowReply(true)
   })
 
   const takePhoto = () => {
@@ -235,25 +273,41 @@ export default function Experience() {
             onResetCameraMotion={cameraMotion.resetMotion}
             assetUrl={selectedAsset?.url}
             isVideoAsset={selectedAsset?.isVideo}
+            animationSpeed={settings.animationSpeed}
           />
 
           <header className="gc-top-controls">
             <button className="gc-company-pill" onClick={resetExperience} title="Start a fresh conversation">
-              <span>←</span> GOOD COMPANY
+              <span>←</span> FAIRY AI
             </button>
 
             <div className="gc-top-right">
+              <button className="gc-round-control" onClick={() => setShowChatHistory(true)} title="Chat History">📖</button>
               <button className="gc-round-control" onClick={() => setShowCharacterSelector(true)} title="Change Character">🎭</button>
               <button className="gc-round-control" onClick={takePhoto} title="Take Photo">📸</button>
               <button className="gc-swap-control" onClick={() => void cam.flip()} title="Swap camera">SWAP</button>
-              <button
-                className="gc-round-control"
-                onClick={() => setVoiceReplies((value) => !value)}
-                title={voiceReplies ? 'Mute spoken replies' : 'Enable spoken replies'}
-                aria-label={voiceReplies ? 'Mute spoken replies' : 'Enable spoken replies'}
-              >{voiceReplies ? '🔊' : '🔇'}</button>
             </div>
           </header>
+
+          {showChatHistory && (
+            <ChatHistory
+              onClose={() => setShowChatHistory(false)}
+              currentId={conversationId}
+              onSelect={async (id) => {
+                setBusy(true)
+                try {
+                  const conv = await getConversation(id)
+                  setConversationId(id)
+                  setMessages(conv.messages)
+                  setShowChatHistory(false)
+                } catch (err) {
+                  console.error(err)
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            />
+          )}
 
           {showCharacterSelector && (
             <div className="gc-modal-backdrop" onClick={() => setShowCharacterSelector(false)}>
@@ -266,8 +320,8 @@ export default function Experience() {
                       key={asset.url}
                       className={`gc-character-btn ${selectedAsset?.url === asset.url ? 'active' : ''}`}
                       onClick={() => {
-                        setSelectedAsset({ url: asset.url });
-                        setShowCharacterSelector(false);
+                        setSelectedAsset({ url: asset.url })
+                        setShowCharacterSelector(false)
                       }}
                     >
                       {asset.name}
@@ -275,17 +329,17 @@ export default function Experience() {
                   ))}
                   <label className="gc-character-btn" style={{ textAlign: 'center', borderStyle: 'dashed' }}>
                     + Upload custom image/video
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       accept="image/*,video/*"
                       style={{ display: 'none' }}
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
+                        const file = e.target.files?.[0]
                         if (file) {
-                          const url = URL.createObjectURL(file);
-                          const isVideo = file.type.startsWith('video/');
-                          setSelectedAsset({ url, isVideo });
-                          setShowCharacterSelector(false);
+                          const url = URL.createObjectURL(file)
+                          const isVideo = file.type.startsWith('video/')
+                          setSelectedAsset({ url, isVideo })
+                          setShowCharacterSelector(false)
                         }
                       }}
                     />
@@ -294,6 +348,22 @@ export default function Experience() {
                 <button className="gc-modal-close" onClick={() => setShowCharacterSelector(false)}>Close</button>
               </div>
             </div>
+          )}
+
+          {showSettings && (
+            <SettingsModal
+              settings={settings}
+              onChange={setSettings}
+              onClose={() => setShowSettings(false)}
+              onClearChat={() => {
+                resetExperience()
+                setShowSettings(false)
+              }}
+              onNukeEverything={() => {
+                localStorage.clear()
+                window.location.reload()
+              }}
+            />
           )}
 
           <div className="gc-drag-hint">Drag to move · pinch or scroll to resize</div>
@@ -314,6 +384,44 @@ export default function Experience() {
           <div className="gc-bottom-fade" />
 
           <form className="gc-composer" onSubmit={submit}>
+
+            <button
+              type="button"
+              className={`gc-mic ${speech.listening ? 'active' : ''}`}
+              onClick={startVoice}
+              aria-label="Start voice input"
+              title={speech.supported ? "Start voice input" : "Voice input not supported in this browser"}
+              disabled={!speech.supported || busy}
+            >
+              🎤
+            </button>
+
+            <button
+              type="button"
+              className={`gc-emoji-toggle ${showEmojis ? 'active' : ''}`}
+              onClick={() => setShowEmojis(!showEmojis)}
+              aria-label="Toggle emoji reactions"
+            >
+              😊
+            </button>
+
+            {showEmojis && (
+              <div className="gc-emoji-row">
+                {EMOJI_REACTIONS.map(({ emoji, text: emojiText }) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="gc-emoji-btn"
+                    onClick={() => {
+                      void send(emojiText)
+                      setShowEmojis(false)
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <input
               value={text}
