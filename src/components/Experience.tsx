@@ -369,16 +369,27 @@ export default function Experience() {
 
           <div className="gc-drag-hint">Drag to move · pinch or scroll to resize</div>
 
-          {showReply && (latestAssistant || busy || error) && (
-            <section className="gc-reply-card" aria-live="polite">
+          {showReply && (latestUser || latestAssistant || busy || error) && (
+            <section className="gc-reply-card" aria-live="polite" key={latestUser?.id || 'busy'}>
               <button className="gc-reply-close" onClick={() => setShowReply(false)} aria-label="Hide reply">×</button>
+              
+              {latestUser && (
+                <div className="gc-user-msg">
+                  <p>You: {latestUser.content}</p>
+                  <span className="gc-message-ticks" title="Delivered">✓✓</span>
+                </div>
+              )}
+
               {busy ? (
-                <div className="gc-thinking"><span /><span /><span /></div>
+                <div className="gc-thinking">
+                  <img src={selectedAsset?.url || '/assets/fairy.png'} alt="Thinking" />
+                  <span>{character?.name || 'Tansy'} is thinking...</span>
+                </div>
               ) : error ? (
                 <div className="gc-error">{error}</div>
-              ) : (
-                <p>{latestAssistant?.content}</p>
-              )}
+              ) : latestAssistant ? (
+                <p>{latestAssistant.content}</p>
+              ) : null}
             </section>
           )}
 
